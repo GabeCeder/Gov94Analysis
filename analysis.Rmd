@@ -1,0 +1,111 @@
+---
+title: "first_analysis"
+author: "Gabe Cederberg"
+date: "3/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Loading the important packages for the exam.
+
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(fivethirtyeight)
+library(janitor)
+library(ggthemes)
+library(gt)
+library(reprex)
+library(magrittr)
+library(stringr)
+library(haven)
+library(infer)
+library(readxl)
+library(viridis)  
+
+```
+
+# {.tabset}
+
+## First analysis
+
+```{r, echo = FALSE}
+
+import <- read_excel("~/Desktop/Projects/Gov94Analysis/COVID-19-geographic-disbtribution-worldwide-2020-03-29.xlsx")
+
+clean_import <- import %>% 
+  select(date = "dateRep",
+         day:year,
+         new_cases = "cases",
+         new_deaths = "deaths",
+         country = "countriesAndTerritories",
+         geoid = "geoId",
+         code = "countryterritoryCode",
+         pop_2018 = "popData2018")
+
+
+```
+
+```{r, echo = FALSE}
+a <- clean_import %>% 
+  mutate(latin_america = ifelse(
+            country == "Brazil" |
+            country == "Mexico" |
+            country == "Colombia" |
+            country == "Argentina" |
+            country == "Venezuela" |
+            country == "Peru" |
+            country == "Chile" | 
+            country == "Ecuador" |
+            country == "Guatemala" |
+            country == "Cuba" |
+            country == "Bolivia" |
+            country == "Dominican_Republic" |
+            country == "Haiti" |
+            country == "Honduras" |
+            country == "Paraguay" |
+            country == "El_Salvador" |
+            country == "Nicaragua" |
+            country == "Costa_Rica" |
+            country == "Puerto_Rico" |
+            country == "Panama" |
+            country == "Uruguay", 1, 0),
+         south_america = ifelse(
+            country == "Brazil" |
+            country == "Colombia" |
+            country == "Argentina" |
+            country == "Venezuela" |
+            country == "Peru" |
+            country == "Chile" | 
+            country == "Ecuador" |
+            country == "Bolivia" |
+            country == "Paraguay" |
+            country == "Uruguay", 1, 0)) %>% 
+  filter(month == 3,
+#         day  13,
+         south_america == 1) %>% 
+  mutate(cases_pop = (new_cases / pop_2018),
+         deaths_pop = (new_deaths / pop_2018),
+         deaths_cases = deaths_pop / cases_pop)
+
+
+
+
+ggplot(a, aes(x = date, y = new_deaths, color = country)) +
+  geom_line() +
+  theme_classic() +
+  labs(
+    title = "New Cases by Country",
+    subtitle = "Cases Rapidly Increasing After Mid-March",
+       y = "New Daily Cases",
+       x = "",
+    caption = "Data from the European Union's European 
+    Centre for Disease Prevention and Control",
+    color = "Country") +
+  theme(legend.position="bottom") 
+#   + scale_color_viridis(discrete = TRUE, option = "C")
+  
+```
+
