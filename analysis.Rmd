@@ -91,28 +91,50 @@ merged_data <- clean_import %>%
          deaths_pop = (new_deaths / pop_2018),
          deaths_cases = deaths_pop / cases_pop) %>% 
   group_by(country) %>% 
+  arrange(date) %>% 
   mutate(running_sum = cumsum(new_cases)) %>% 
-  ungroup()
-
-merged_data
+  ungroup() %>% 
+  arrange(country)
 
 ```
 
 ```{r, echo = FALSE}
 a <- merged_data %>% 
   filter(month == 3,
-         south_america == 1) %>% 
+         day > 10,
+         south_america == 1)
+```
 
 
-lm()
+```{r, echo = FALSE}
+# Daily new cases 
 
-ggplot(a, aes(x = date, y = new_deaths, color = country)) +
+ggplot(a, aes(x = date, y = cases_pop, color = country)) +
   geom_line() +
   theme_classic() +
   labs(
     title = "New Cases by Country",
     subtitle = "Cases Rapidly Increasing After Mid-March",
        y = "New Daily Cases",
+       x = "",
+    caption = "Data from the European Union's European 
+    Centre for Disease Prevention and Control",
+    color = "Country") +
+  theme(legend.position="bottom") 
+#   + scale_color_viridis(discrete = TRUE, option = "C")
+  
+```
+
+```{r, echo = FALSE}
+# Cumulative cases 
+
+ggplot(a, aes(x = date, y = running_sum, color = country)) +
+  geom_line() +
+  theme_classic() +
+  labs(
+    title = "Cumulative Cases by Country",
+    subtitle = "Cases Rapidly Increasing After Mid-March",
+       y = "Total Cases",
        x = "",
     caption = "Data from the European Union's European 
     Centre for Disease Prevention and Control",
