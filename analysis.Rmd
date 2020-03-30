@@ -29,7 +29,7 @@ library(viridis)
 
 # {.tabset}
 
-## First analysis
+## COVID 19 Analysis
 
 ```{r, echo = FALSE, message = FALSE}
 
@@ -87,13 +87,14 @@ merged_data <- clean_import %>%
             country == "Bolivia" |
             country == "Paraguay" |
             country == "Uruguay", 1, 0)) %>% 
-  mutate(cases_pop = (new_cases / pop_2018),
-         deaths_pop = (new_deaths / pop_2018),
-         deaths_cases = deaths_pop / cases_pop) %>% 
   group_by(country) %>% 
   arrange(date) %>% 
   mutate(running_sum = cumsum(new_cases)) %>% 
   ungroup() %>% 
+  mutate(cases_pop = (new_cases / pop_2018),
+         deaths_pop = (new_deaths / pop_2018),
+         deaths_cases = deaths_pop / cases_pop,
+         running_sum_pop = running_sum / pop_2018) %>% 
   arrange(country)
 
 ```
@@ -109,7 +110,7 @@ a <- merged_data %>%
 ```{r, echo = FALSE}
 # Daily new cases 
 
-ggplot(a, aes(x = date, y = cases_pop, color = country)) +
+ggplot(a, aes(x = date, y = running_sum_pop, color = country)) +
   geom_line() +
   theme_classic() +
   labs(
@@ -142,5 +143,47 @@ ggplot(a, aes(x = date, y = running_sum, color = country)) +
   theme(legend.position="bottom") 
 #   + scale_color_viridis(discrete = TRUE, option = "C")
   
+```
+
+## Combined Data Analysis
+
+```{r, echo = FALSE, warning = FALSE}
+b <- merged_data %>% 
+  filter(month == 3,
+         day == 27,
+         south_america == 1) 
+
+ggplot(b, aes(x = gdp_2018, y = running_sum, color = country)) +
+  geom_point(size = 2.5) +
+  theme_classic() +
+  labs(
+    title = "Cumulative Cases by GDP",
+    subtitle = "Slight positive relationship",
+       y = "Cumulative Cases on 3/27",
+       x = "",
+    caption = "Data from the European Union's 
+    European Centre for Disease Prevention 
+    and Control and the World Bank",
+    color = "Country") +
+  theme(legend.position="bottom") 
+```
+
+```{r, echo = FALSE, warning = FALSE}
+
+
+ggplot(b, aes(x = gdp_2018, y = running_sum)) +
+  geom_point() +
+  geom_smooth(method='lm', formula= y~x) +
+  theme_classic() +
+  labs(
+    title = "Cumulative Cases by GDP in South America",
+    subtitle = "Slight positive relationship",
+       y = "Cumulative Cases on 3/27",
+       x = "",
+    caption = "Data from the European Union's 
+    European Centre for Disease Prevention 
+    and Control and the World Bank",
+    color = "Country") +
+  theme(legend.position="bottom") 
 ```
 
