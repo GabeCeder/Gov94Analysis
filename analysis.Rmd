@@ -31,9 +31,9 @@ library(viridis)
 
 ## First analysis
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, message = FALSE}
 
-import <- read_excel("~/Desktop/Projects/Gov94Analysis/COVID-19-geographic-disbtribution-worldwide-2020-03-29.xlsx")
+import <- read_excel("raw-data/COVID-19-geographic-disbtribution-worldwide-2020-03-29.xlsx")
 
 clean_import <- import %>% 
   select(date = "dateRep",
@@ -45,11 +45,15 @@ clean_import <- import %>%
          code = "countryterritoryCode",
          pop_2018 = "popData2018")
 
+other_data <- read_excel("raw-data/OtherData.xlsx")
 
-```
-
-```{r, echo = FALSE}
-a <- clean_import %>% 
+merged_data <- clean_import %>% 
+  left_join(other_data) %>% 
+  select(date:pop_2018,
+         gdp_2018 = "GDP (constant 2010 US$) 2018",
+         health_exp_gdp_2016 = "Current health expenditure (% of GDP) 2016",
+         out_pocket_exp_2016 = "Out-of-pocket expenditure (% of current health expenditure) 2016",
+         private_exp_pp_2016 = "Domestic private health expenditure per capita (current US$) 2016") %>% 
   mutate(latin_america = ifelse(
             country == "Brazil" |
             country == "Mexico" |
@@ -83,15 +87,24 @@ a <- clean_import %>%
             country == "Bolivia" |
             country == "Paraguay" |
             country == "Uruguay", 1, 0)) %>% 
-  filter(month == 3,
-#         day  13,
-         south_america == 1) %>% 
   mutate(cases_pop = (new_cases / pop_2018),
          deaths_pop = (new_deaths / pop_2018),
-         deaths_cases = deaths_pop / cases_pop)
+         deaths_cases = deaths_pop / cases_pop) %>% 
+  group_by(country) %>% 
+  mutate(running_sum = cumsum(new_cases)) %>% 
+  ungroup()
+
+merged_data
+
+```
+
+```{r, echo = FALSE}
+a <- merged_data %>% 
+  filter(month == 3,
+         south_america == 1) %>% 
 
 
-
+lm()
 
 ggplot(a, aes(x = date, y = new_deaths, color = country)) +
   geom_line() +
