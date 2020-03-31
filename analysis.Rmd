@@ -53,7 +53,8 @@ merged_data <- clean_import %>%
          gdp_2018 = "GDP (constant 2010 US$) 2018",
          health_exp_gdp_2016 = "Current health expenditure (% of GDP) 2016",
          out_pocket_exp_2016 = "Out-of-pocket expenditure (% of current health expenditure) 2016",
-         private_exp_pp_2016 = "Domestic private health expenditure per capita (current US$) 2016") %>% 
+         private_exp_pp_2016 = "Domestic private health expenditure per capita (current US$) 2016",
+         gini_2017 = "GINI index (World Bank estimate) 2017") %>% 
   mutate(latin_america = ifelse(
             country == "Brazil" |
             country == "Mexico" |
@@ -110,11 +111,11 @@ a <- merged_data %>%
 ```{r, echo = FALSE}
 # Daily new cases 
 
-ggplot(a, aes(x = date, y = running_sum_pop, color = country)) +
+ggplot(a, aes(x = date, y = new_cases, color = country)) +
   geom_line() +
   theme_classic() +
   labs(
-    title = "New Cases by Country",
+    title = "New Daily Cases by Country",
     subtitle = "Cases Rapidly Increasing After Mid-March",
        y = "New Daily Cases",
        x = "",
@@ -157,10 +158,10 @@ ggplot(b, aes(x = gdp_2018, y = running_sum, color = country)) +
   geom_point(size = 2.5) +
   theme_classic() +
   labs(
-    title = "Cumulative Cases by GDP",
+    title = "Cumulative Cases by GDP in South America",
     subtitle = "Slight positive relationship",
        y = "Cumulative Cases on 3/27",
-       x = "",
+       x = "GDP in 2018",
     caption = "Data from the European Union's 
     European Centre for Disease Prevention 
     and Control and the World Bank",
@@ -179,7 +180,44 @@ ggplot(b, aes(x = gdp_2018, y = running_sum)) +
     title = "Cumulative Cases by GDP in South America",
     subtitle = "Slight positive relationship",
        y = "Cumulative Cases on 3/27",
-       x = "",
+       x = "GDP in 2018",
+    caption = "Data from the European Union's 
+    European Centre for Disease Prevention 
+    and Control and the World Bank",
+    color = "Country") +
+  theme(legend.position="bottom") 
+```
+
+```{r, echo = FALSE, warning = FALSE}
+# Gini Coefficient
+
+ggplot(b, aes(x = gini_2017, y = running_sum, color = country)) +
+  geom_point() +
+  theme_classic() +
+  labs(
+    title = "Cumulative Cases by Gini Coefficient in South America",
+    subtitle = "Slight positive relationship",
+       y = "Cumulative Cases on 3/27",
+       x = "Gini Coefficient in 2017",
+    caption = "Data from the European Union's 
+    European Centre for Disease Prevention 
+    and Control and the World Bank",
+    color = "Country") +
+  theme(legend.position="bottom") 
+```
+
+```{r, echo = FALSE, warning = FALSE}
+# Gini Coefficient
+
+ggplot(b, aes(x = gini_2017, y = running_sum)) +
+  geom_point() +
+  geom_smooth(method='lm', formula= y~x) +
+  theme_classic() +
+  labs(
+    title = "Cumulative Cases by Gini Coefficient in South America",
+    subtitle = "Slight positive relationship",
+       y = "Cumulative Cases on 3/27",
+       x = "Gini Coefficient in 2017",
     caption = "Data from the European Union's 
     European Centre for Disease Prevention 
     and Control and the World Bank",
