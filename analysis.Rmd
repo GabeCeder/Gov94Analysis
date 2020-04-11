@@ -35,7 +35,6 @@ library(broom)
 ## COVID 19 Analysis
 
 ```{r, echo = FALSE, message = FALSE}
-
 #these libraries need to be loaded
 library(utils)
 
@@ -108,10 +107,13 @@ merged_data <- clean_import %>%
          running_sum_pop = running_sum / pop_2018) %>% 
   arrange(country)
 
-x <- c("Ecuador", "Brazil")
+```
+
+
+```{r, echo = FALSE, message = FALSE}
+# Writing function
 
 days_since <- function(x){
-  
 rows <- merged_data %>% 
   filter(country == x) %>% 
   select(country, date, running_sum) %>% 
@@ -125,13 +127,49 @@ merged_data %>%
   mutate(days_since_100 = 1:rows)
 }
 
-a <- c("Ecuador", "Brazil")
+merged_data %>% 
+  filter(date == "2020-04-09" & 
+           running_sum < 100 &
+           latin_america == 1)
 
-test <- map_df(a, ~ days_since(.))
+countries_included <- c("Brazil", 
+       "Mexico", 
+       "Colombia", 
+       "Argentina", 
+       "Venezuela", 
+       "Peru", 
+       "Chile", 
+       "Ecuador", 
+#       "Guatemala", 
+       "Cuba", 
+       "Bolivia", 
+       "Dominican_Republic", 
+#       "Haiti", 
+       "Honduras", 
+       "Paraguay", 
+       "El_Salvador", 
+ #      "Nicaragua", 
+       "Costa_Rica", 
+       "Puerto_Rico", 
+       "Panama", 
+       "Uruguay")
 
-test
+test <- map_df(countries_included, ~ days_since(.))
 
-days_since(x)
+ggplot(test, aes(days_since_100, running_sum, color = country)) +
+  geom_line() +
+    theme_classic() +
+  labs(
+    title = "Total Cases in Each Country",
+    subtitle = "Brazil's cases have grown faster than other Lating American Countries",
+       y = "Cases",
+       x = "Days Since 100 Confirmed Cases",
+    caption = "Data from the European Union's European 
+    Centre for Disease Prevention and Control",
+    color = "Country") +
+  theme(legend.position="bottom")
+#  scale_color_viridis_d(option = "plasma")
+
 
 ```
 
@@ -156,7 +194,7 @@ ggplot(a, aes(x = date, y = new_cases, color = country)) +
     caption = "Data from the European Union's European 
     Centre for Disease Prevention and Control",
     color = "Country") +
-  theme(legend.position="bottom") 
+  theme(legend.position="bottom")  +
 #   + scale_color_viridis(discrete = TRUE, option = "C")
   
 ```
