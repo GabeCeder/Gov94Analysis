@@ -25,6 +25,8 @@ library(infer)
 library(readxl)
 library(viridis) 
 library(lubridate)
+library(tidyr)
+library(broom)
 
 ```
 
@@ -106,13 +108,37 @@ merged_data <- clean_import %>%
          running_sum_pop = running_sum / pop_2018) %>% 
   arrange(country)
 
+x <- c("Ecuador", "Brazil")
+
+days_since <- function(x){
+  
+rows <- merged_data %>% 
+  filter(country == x) %>% 
+  select(country, date, running_sum) %>% 
+  filter(running_sum >= 100) %>%
+  nrow()
+
+merged_data %>% 
+  filter(country == x) %>% 
+  select(country, date, running_sum) %>% 
+  filter(running_sum >= 100) %>%
+  mutate(days_since_100 = 1:rows)
+}
+
+a <- c("Ecuador", "Brazil")
+
+test <- map_df(a, ~ days_since(.))
+
+test
+
+days_since(x)
+
 ```
 
 ```{r, echo = FALSE}
 a <- merged_data %>% 
-  filter(month != 1 &
-           month != 2,
-         south_america == 1)
+  filter(date > "2020-03-14",
+         south_america == 1 )
 ```
 
 
@@ -158,9 +184,8 @@ ggplot(a, aes(x = date, y = running_sum, color = country)) +
 
 ```{r, echo = FALSE, warning = FALSE}
 b <- merged_data %>% 
-  filter(month == 3,
-         day == 27,
-         south_america == 1) 
+  filter(date == "2020-04-09" &
+         latin_america == 1) 
 
 ggplot(b, aes(x = gdp_2018, y = running_sum, color = country)) +
   geom_point(size = 2.5) +
@@ -231,6 +256,8 @@ ggplot(b, aes(x = gini_2017, y = running_sum)) +
     and Control and the World Bank",
     color = "Country") +
   theme(legend.position="bottom") 
+
+summary(lm(running_sum ~ gini_2017 + pop_2018 + gdp_2018 + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016, data = b)) 
 ```
 
 
