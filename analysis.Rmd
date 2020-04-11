@@ -23,7 +23,8 @@ library(stringr)
 library(haven)
 library(infer)
 library(readxl)
-library(viridis)  
+library(viridis) 
+library(lubridate)
 
 ```
 
@@ -33,7 +34,14 @@ library(viridis)
 
 ```{r, echo = FALSE, message = FALSE}
 
-import <- read_excel("raw-data/COVID-19-geographic-disbtribution-worldwide-2020-03-29.xlsx")
+#these libraries need to be loaded
+library(utils)
+
+#read the Dataset sheet into “R”. The dataset will be called "data".
+import <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM") 
+
+import$dateRep <- 
+  as.Date(import$dateRep, "%d/%m/%Y")
 
 clean_import <- import %>% 
   select(date = "dateRep",
@@ -102,8 +110,8 @@ merged_data <- clean_import %>%
 
 ```{r, echo = FALSE}
 a <- merged_data %>% 
-  filter(month == 3,
-         day > 10,
+  filter(month != 1 &
+           month != 2,
          south_america == 1)
 ```
 
@@ -223,5 +231,17 @@ ggplot(b, aes(x = gini_2017, y = running_sum)) +
     and Control and the World Bank",
     color = "Country") +
   theme(legend.position="bottom") 
+```
+
+
+```{r}
+
+merged_data
+
+c <- merged_data%>% 
+  filter(country == "United_States_of_America")
+
+c
+
 ```
 
