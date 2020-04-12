@@ -27,6 +27,7 @@ library(viridis)
 library(lubridate)
 library(tidyr)
 library(broom)
+library(utils)
 
 ```
 
@@ -35,10 +36,9 @@ library(broom)
 ## COVID 19 Analysis
 
 ```{r, echo = FALSE, message = FALSE, warning = FALSE}
-#these libraries need to be loaded
-library(utils)
 
-#read the Dataset sheet into “R”. The dataset will be called "data".
+# Loading data
+
 import <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM") 
 
 import$dateRep <- 
@@ -103,7 +103,7 @@ merged_data <- clean_import %>%
   ungroup() %>% 
   mutate(cases_pop = (new_cases / pop_2018),
          deaths_pop = (new_deaths / pop_2018),
-         deaths_cases = deaths_pop / cases_pop,
+     #    deaths_cases = deaths_pop / cases_pop,
          running_sum_pop = running_sum / pop_2018) %>% 
   arrange(country)
 
@@ -214,7 +214,7 @@ ggplot(a, aes(x = date, y = running_sum, color = country)) +
 
 ```{r, echo = FALSE, warning = FALSE}
 b <- merged_data %>% 
-  filter(date == "2020-04-09" &
+  filter(date == "2020-04-10" &
          latin_america == 1) 
 
 ggplot(b, aes(x = gdp_2018, y = running_sum, color = country)) +
