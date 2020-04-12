@@ -34,7 +34,7 @@ library(broom)
 
 ## COVID 19 Analysis
 
-```{r, echo = FALSE, message = FALSE}
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
 #these libraries need to be loaded
 library(utils)
 
@@ -127,11 +127,6 @@ merged_data %>%
   mutate(days_since_100 = 1:rows)
 }
 
-merged_data %>% 
-  filter(date == "2020-04-09" & 
-           running_sum < 100 &
-           latin_america == 1)
-
 countries_included <- c("Brazil", 
        "Mexico", 
        "Colombia", 
@@ -160,14 +155,13 @@ ggplot(test, aes(days_since_100, running_sum, color = country)) +
   geom_line() +
     theme_classic() +
   labs(
-    title = "Total Cases in Each Country",
-    subtitle = "Brazil's cases have grown faster than other Lating American Countries",
+    title = "Total Cases",
+    subtitle = "Brazil's cases have grown faster than in any other Latin American Country",
        y = "Cases",
        x = "Days Since 100 Confirmed Cases",
-    caption = "Data from the European Union's European 
-    Centre for Disease Prevention and Control",
+    caption = "Data from the European Union's European Centre for Disease Prevention and Control",
     color = "Country") +
-  theme(legend.position="bottom")
+  theme(legend.position = "bottom")
 #  scale_color_viridis_d(option = "plasma")
 
 
@@ -191,10 +185,9 @@ ggplot(a, aes(x = date, y = new_cases, color = country)) +
     subtitle = "Cases Rapidly Increasing After Mid-March",
        y = "New Daily Cases",
        x = "",
-    caption = "Data from the European Union's European 
-    Centre for Disease Prevention and Control",
+    caption = "Data from the European Union's European Centre for Disease Prevention and Control",
     color = "Country") +
-  theme(legend.position="bottom")  +
+  theme(legend.position = "bottom") 
 #   + scale_color_viridis(discrete = TRUE, option = "C")
   
 ```
@@ -210,10 +203,9 @@ ggplot(a, aes(x = date, y = running_sum, color = country)) +
     subtitle = "Cases Rapidly Increasing After Mid-March",
        y = "Total Cases",
        x = "",
-    caption = "Data from the European Union's European 
-    Centre for Disease Prevention and Control",
+    caption = "Data from the European Union's European Centre for Disease Prevention and Control",
     color = "Country") +
-  theme(legend.position="bottom") 
+  theme(legend.position = "bottom") 
 #   + scale_color_viridis(discrete = TRUE, option = "C")
   
 ```
@@ -237,7 +229,7 @@ ggplot(b, aes(x = gdp_2018, y = running_sum, color = country)) +
     European Centre for Disease Prevention 
     and Control and the World Bank",
     color = "Country") +
-  theme(legend.position="bottom") 
+  theme(legend.position = "bottom") 
 ```
 
 ```{r, echo = FALSE, warning = FALSE}
@@ -256,7 +248,7 @@ ggplot(b, aes(x = gdp_2018, y = running_sum)) +
     European Centre for Disease Prevention 
     and Control and the World Bank",
     color = "Country") +
-  theme(legend.position="bottom") 
+  theme(legend.position = "bottom") 
 ```
 
 ```{r, echo = FALSE, warning = FALSE}
