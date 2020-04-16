@@ -1,0 +1,233 @@
+---
+title: 'Covid-19 in Latin America'
+author: "Gabe Cederberg"
+date: "4/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Loading the important packages for the exam.
+
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(fivethirtyeight)
+library(janitor)
+library(ggthemes)
+library(gt)
+library(reprex)
+library(magrittr)
+library(stringr)
+library(haven)
+library(infer)
+library(readxl)
+library(viridis) 
+library(lubridate)
+library(tidyr)
+library(broom)
+library(utils)
+library(gganimate)
+
+```
+
+# {.tabset}
+
+## Total Cases
+
+My final project seeks to examine the spread of Covid-19 in Latin America. The internet has been overrun with misinformation about the pandemic, so the importance of effective and accurate messaging around the communication of the virus is incredibly important. 
+
+In order to compare the growth in cases between different countries, it’s important to somehow standardize the growth timelines so that the effectiveness of each country’s response can be judged fairly in reference to other countries. To do this, I created a new variable for each country that marks the number of days since the country reached 100 cases. This allowed me to start each country at the same x and y starting point, providing an easier comparison between country cases.
+
+In this view, it’s clear that Brazil’s cases have consistently increased faster than cases in other Latin American countries. It’s also interesting to monitor other countries that have struggled to slow the spread of the virus, such as Ecuador and, increasingly, Peru. As more countries move further from their first reported 100 cases, it will be interesting to monitor their growth rates to see if they demonstrate the exponential relationship seen in many countries around the world. 
+
+The figure in the next tab demonstrates the daily new cases in each South American country. 
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+# Loading data
+
+import <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM") 
+
+import$dateRep <- 
+  as.Date(import$dateRep, "%d/%m/%Y")
+
+clean_import <- import %>% 
+  select(date = "dateRep",
+         day:year,
+         new_cases = "cases",
+         new_deaths = "deaths",
+         country = "countriesAndTerritories",
+         geoid = "geoId",
+         code = "countryterritoryCode",
+         pop_2018 = "popData2018")
+
+other_data <- read_excel("raw-data/OtherData.xlsx")
+
+merged_data <- clean_import %>% 
+  left_join(other_data) %>% 
+  select(date:pop_2018,
+         gdp_2018 = "GDP (constant 2010 US$) 2018",
+         health_exp_gdp_2016 = "Current health expenditure (% of GDP) 2016",
+         out_pocket_exp_2016 = "Out-of-pocket expenditure (% of current health expenditure) 2016",
+         private_exp_pp_2016 = "Domestic private health expenditure per capita (current US$) 2016",
+         gini_2017 = "GINI index (World Bank estimate) 2017") %>% 
+  mutate(pop_millions = pop_2018 / 1000000,
+         gdp_billions = gdp_2018 / 1000000000) %>% 
+  select(date:code, 
+         health_exp_gdp_2016:gdp_billions) %>% 
+  mutate(latin_america = ifelse(
+            country == "Brazil" |
+            country == "Mexico" |
+            country == "Colombia" |
+            country == "Argentina" |
+            country == "Venezuela" |
+            country == "Peru" |
+            country == "Chile" | 
+            country == "Ecuador" |
+            country == "Guatemala" |
+            country == "Cuba" |
+            country == "Bolivia" |
+            country == "Dominican_Republic" |
+            country == "Haiti" |
+            country == "Honduras" |
+            country == "Paraguay" |
+            country == "El_Salvador" |
+            country == "Nicaragua" |
+            country == "Costa_Rica" |
+            country == "Puerto_Rico" |
+            country == "Panama" |
+            country == "Uruguay", 1, 0),
+         south_america = ifelse(
+            country == "Brazil" |
+            country == "Colombia" |
+            country == "Argentina" |
+            country == "Venezuela" |
+            country == "Peru" |
+            country == "Chile" | 
+            country == "Ecuador" |
+            country == "Bolivia" |
+            country == "Paraguay" |
+            country == "Uruguay", 1, 0)) %>% 
+  group_by(country) %>% 
+  arrange(date) %>% 
+  mutate(running_sum = cumsum(new_cases)) %>% 
+  ungroup() %>% 
+  mutate(cases_pop = (new_cases / pop_millions),
+         deaths_pop = (new_deaths / pop_millions),
+     #    deaths_cases = deaths_pop / cases_pop,
+         running_sum_pop = running_sum / pop_millions) %>% 
+  arrange(country)
+
+```
+
+
+```{r, echo = FALSE, message = FALSE}
+# Writing function
+
+days_since <- function(x){
+rows <- merged_data %>% 
+  filter(country == x) %>% 
+  select(country, date, running_sum) %>% 
+  filter(running_sum >= 100) %>%
+  nrow()
+
+merged_data %>% 
+  filter(country == x) %>% 
+  select(country, date, running_sum) %>% 
+  filter(running_sum >= 100) %>%
+  mutate(days_since_100 = 1:rows)
+}
+
+countries_included <- c("Brazil", 
+       "Mexico", 
+       "Colombia", 
+       "Argentina", 
+       "Venezuela", 
+       "Peru", 
+       "Chile", 
+       "Ecuador", 
+#       "Guatemala", 
+       "Cuba", 
+       "Bolivia", 
+       "Dominican_Republic", 
+#       "Haiti", 
+       "Honduras", 
+       "Paraguay", 
+       "El_Salvador", 
+ #      "Nicaragua", 
+       "Costa_Rica", 
+       "Puerto_Rico", 
+       "Panama", 
+       "Uruguay")
+
+test <- map_df(countries_included, ~ days_since(.))
+
+ggplot(test, aes(days_since_100, running_sum, color = country)) +
+  geom_line() +
+    theme_classic() +
+  labs(
+    title = "Total Cases",
+    subtitle = "Brazil's cases have grown faster than in any other Latin American Country",
+       y = "Cases",
+       x = "Days Since 100 Confirmed Cases",
+    caption = "Data from the European Union's European Centre for Disease Prevention and Control",
+    color = "Country") +
+  theme(legend.position = "bottom") +
+    transition_reveal(date)
+#  scale_color_viridis_d(option = "plasma")
+
+
+```
+
+```{r, echo = FALSE}
+a <- merged_data %>% 
+  filter(date > "2020-03-14",
+         south_america == 1 )
+```
+
+## New Daily Cases
+
+This figure shows the new cases each day after March 14th in South American countries. What’s especially striking is the rapidly undulating daily new case counts in countries like Ecuador, Chile, Peru, and Brazil. These variances undermine trust in the accuracy of the reported data and suggest that many cases are not being reported efficiently to central authorities. 
+
+This emphasizes one of the most difficult aspect of tracking the spread of this virus; the lack of widespread testing and reporting of cases means that it is almost impossible to truly understand the scope of the pandemic in a country. Furthermore, many governments see it as beneficial to minimize the scope of the disease in their country, pushing them to avoid counting many deaths as related to Covid-19 or decide that asymptomatic cases should not be included in the official total. 
+
+The next tab shows the initial linear regression results regarding different country factors that could impact the spread of Covid-19. 
+
+```{r, echo = FALSE}
+# Daily new cases 
+
+ggplot(a, aes(x = date, y = new_cases, color = country)) +
+  geom_line() +
+  theme_classic() +
+  labs(
+    title = "New Daily Cases by Country",
+    subtitle = "Cases Rapidly Increasing After Mid-March",
+       y = "New Daily Cases",
+       x = "",
+    caption = "Data from the European Union's European Centre for Disease Prevention and Control",
+    color = "Country") +
+  theme(legend.position = "bottom") +
+  transition_reveal(date)
+#   + scale_color_viridis(discrete = TRUE, option = "C")
+  
+```
+
+
+## Initial Regression Analysis
+
+These linear regression results suggest that population size and various healthcare system factors have the most significant impacts on the total number of cases within a country. I am going to add additional factors that might influence the spread of the virus, such as the type of party leadership currently in control and whether social distancing / lockdown measures were put into place in a timely manner and/or enforced. 
+
+```{r, echo = FALSE}
+# Regressions
+
+b <- merged_data %>% 
+  filter(date == "2020-04-14" &
+         latin_america == 1) 
+
+
+summary(lm(running_sum ~ gini_2017 + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016, data = b)) 
+
+
+```

@@ -64,6 +64,10 @@ merged_data <- clean_import %>%
          out_pocket_exp_2016 = "Out-of-pocket expenditure (% of current health expenditure) 2016",
          private_exp_pp_2016 = "Domestic private health expenditure per capita (current US$) 2016",
          gini_2017 = "GINI index (World Bank estimate) 2017") %>% 
+  mutate(pop_millions = pop_2018 / 1000000,
+         gdp_billions = gdp_2018 / 1000000000) %>% 
+  select(date:code, 
+         health_exp_gdp_2016:gdp_billions) %>% 
   mutate(latin_america = ifelse(
             country == "Brazil" |
             country == "Mexico" |
@@ -101,10 +105,10 @@ merged_data <- clean_import %>%
   arrange(date) %>% 
   mutate(running_sum = cumsum(new_cases)) %>% 
   ungroup() %>% 
-  mutate(cases_pop = (new_cases / pop_2018),
-         deaths_pop = (new_deaths / pop_2018),
+  mutate(cases_pop = (new_cases / pop_millions),
+         deaths_pop = (new_deaths / pop_millions),
      #    deaths_cases = deaths_pop / cases_pop,
-         running_sum_pop = running_sum / pop_2018) %>% 
+         running_sum_pop = running_sum / pop_millions) %>% 
   arrange(country)
 
 ```
@@ -171,6 +175,8 @@ ggplot(test, aes(days_since_100, running_sum, color = country)) +
 a <- merged_data %>% 
   filter(date > "2020-03-14",
          south_america == 1 )
+
+summary(a)
 ```
 
 
@@ -214,17 +220,17 @@ ggplot(a, aes(x = date, y = running_sum, color = country)) +
 
 ```{r, echo = FALSE, warning = FALSE}
 b <- merged_data %>% 
-  filter(date == "2020-04-10" &
+  filter(date == "2020-04-14" &
          latin_america == 1) 
 
-ggplot(b, aes(x = gdp_2018, y = running_sum, color = country)) +
+ggplot(b, aes(x = gdp_billions, y = running_sum, color = country)) +
   geom_point(size = 2.5) +
   theme_classic() +
   labs(
     title = "Cumulative Cases by GDP in South America",
     subtitle = "Slight positive relationship",
        y = "Cumulative Cases on 3/27",
-       x = "GDP in 2018",
+       x = "GDP in 2018 (billions of USD)",
     caption = "Data from the European Union's 
     European Centre for Disease Prevention 
     and Control and the World Bank",
@@ -235,7 +241,7 @@ ggplot(b, aes(x = gdp_2018, y = running_sum, color = country)) +
 ```{r, echo = FALSE, warning = FALSE}
 
 
-ggplot(b, aes(x = gdp_2018, y = running_sum)) +
+ggplot(b, aes(x = gdp_billions, y = running_sum)) +
   geom_point() +
   geom_smooth(method='lm', formula= y~x) +
   theme_classic() +
@@ -243,7 +249,7 @@ ggplot(b, aes(x = gdp_2018, y = running_sum)) +
     title = "Cumulative Cases by GDP in South America",
     subtitle = "Slight positive relationship",
        y = "Cumulative Cases on 3/27",
-       x = "GDP in 2018",
+       x = "GDP in 2018 (billions of USD)",
     caption = "Data from the European Union's 
     European Centre for Disease Prevention 
     and Control and the World Bank",
@@ -287,18 +293,7 @@ ggplot(b, aes(x = gini_2017, y = running_sum)) +
     color = "Country") +
   theme(legend.position="bottom") 
 
-summary(lm(running_sum ~ gini_2017 + pop_2018 + gdp_2018 + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016, data = b)) 
+summary(lm(running_sum ~ gini_2017 + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016, data = b)) 
 ```
 
-
-```{r}
-
-merged_data
-
-c <- merged_data%>% 
-  filter(country == "United_States_of_America")
-
-c
-
-```
 
