@@ -28,6 +28,7 @@ library(lubridate)
 library(tidyr)
 library(broom)
 library(utils)
+library(gganimate)
 
 ```
 
@@ -165,7 +166,8 @@ ggplot(test, aes(days_since_100, running_sum, color = country)) +
        x = "Days Since 100 Confirmed Cases",
     caption = "Data from the European Union's European Centre for Disease Prevention and Control",
     color = "Country") +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom") +
+    transition_reveal(date)
 #  scale_color_viridis_d(option = "plasma")
 
 
@@ -176,7 +178,32 @@ a <- merged_data %>%
   filter(date > "2020-03-14",
          south_america == 1 )
 
-summary(a)
+merged_data %>% 
+  filter(date == "2020-04-28" &
+         latin_america == 1) %>% 
+  arrange(desc(running_sum)) %>% 
+  select(country, running_sum) %>% 
+  gt() %>% 
+  tab_header(
+     title = "Cases by Country on April 29th",
+     subtitle = "Data from the European Union's European Centre for Disease Prevention and Control") %>% 
+  cols_label(country = "Country",
+             running_sum = "Total Cases") %>% 
+  cols_align(align = c("center"), columns = TRUE)
+
+merged_data %>% 
+  filter(date == "2020-04-28" &
+         latin_america == 1) %>% 
+  arrange(desc(cases_pop)) %>% 
+  select(country, cases_pop) %>%
+  head(10) %>% 
+  gt() %>% 
+  tab_header(
+     title = "Cases per Capita by Country on April 29th",
+     subtitle = "Data from the European Union's European Centre for Disease Prevention and Control") %>% 
+  cols_label(country = "Country",
+             cases_pop = "Cases Per Capita") %>% 
+  cols_align(align = c("center"), columns = TRUE)
 ```
 
 
@@ -193,7 +220,8 @@ ggplot(a, aes(x = date, y = new_cases, color = country)) +
        x = "",
     caption = "Data from the European Union's European Centre for Disease Prevention and Control",
     color = "Country") +
-  theme(legend.position = "bottom") 
+  theme(legend.position = "bottom")  +
+    transition_reveal(date)
 #   + scale_color_viridis(discrete = TRUE, option = "C")
   
 ```
@@ -211,7 +239,8 @@ ggplot(a, aes(x = date, y = running_sum, color = country)) +
        x = "",
     caption = "Data from the European Union's European Centre for Disease Prevention and Control",
     color = "Country") +
-  theme(legend.position = "bottom") 
+  theme(legend.position = "bottom")  +
+    transition_reveal(date)
 #   + scale_color_viridis(discrete = TRUE, option = "C")
   
 ```
@@ -220,16 +249,59 @@ ggplot(a, aes(x = date, y = running_sum, color = country)) +
 
 ```{r, echo = FALSE, warning = FALSE}
 b <- merged_data %>% 
-  filter(date == "2020-04-14" &
-         latin_america == 1) 
+  filter(date == "2020-04-28" &
+         latin_america == 1)
+```
 
+```{r, echo = FALSE, warning = FALSE}
+summary(lm(running_sum ~ gini_2017 + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016, data = b))
+```
+
+```{r, echo = FALSE, warning = FALSE}
+summary(lm(scale(running_sum) ~ scale(gini_2017) + scale(pop_millions) + scale(gdp_billions) + scale(health_exp_gdp_2016) + scale(out_pocket_exp_2016) + scale(private_exp_pp_2016), data = b)) 
+```
+
+```{r, echo = FALSE, warning = FALSE}
+ggplot(b, aes(x = out_pocket_exp_2016, y = running_sum, color = country)) +
+  geom_point(size = 2.5) +
+  theme_classic() +
+  labs(
+    title = "Cumulative Cases by Out of Pocket Health Expenditure in South America",
+    subtitle = "Slight positive relationship",
+       y = "Cumulative Cases on 4/28",
+       x = "Out-of-pocket expenditure as a % of current health expenditure in 2016",
+    caption = "Data from the European Union's 
+    European Centre for Disease Prevention 
+    and Control and the World Bank",
+    color = "Country") +
+  theme(legend.position = "bottom") 
+```
+
+```{r, echo = FALSE, warning = FALSE}
+ggplot(b, aes(x = out_pocket_exp_2016, y = running_sum, color = country)) +
+  geom_point(size = 2.5) +
+  geom_smooth() +
+  theme_classic() +
+  labs(
+    title = "Cumulative Cases by Out of Pocket Health Expenditure in South America",
+    subtitle = "Slight positive relationship",
+       y = "Cumulative Cases on 4/28",
+       x = "Out-of-pocket expenditure as a % of current health expenditure in 2016",
+    caption = "Data from the European Union's 
+    European Centre for Disease Prevention 
+    and Control and the World Bank",
+    color = "Country") +
+  theme(legend.position = "bottom") 
+```
+
+```{r, echo = FALSE, warning = FALSE}
 ggplot(b, aes(x = gdp_billions, y = running_sum, color = country)) +
   geom_point(size = 2.5) +
   theme_classic() +
   labs(
     title = "Cumulative Cases by GDP in South America",
     subtitle = "Slight positive relationship",
-       y = "Cumulative Cases on 3/27",
+       y = "Cumulative Cases on 4/28",
        x = "GDP in 2018 (billions of USD)",
     caption = "Data from the European Union's 
     European Centre for Disease Prevention 
@@ -248,7 +320,7 @@ ggplot(b, aes(x = gdp_billions, y = running_sum)) +
   labs(
     title = "Cumulative Cases by GDP in South America",
     subtitle = "Slight positive relationship",
-       y = "Cumulative Cases on 3/27",
+       y = "Cumulative Cases on 4/28",
        x = "GDP in 2018 (billions of USD)",
     caption = "Data from the European Union's 
     European Centre for Disease Prevention 
@@ -266,7 +338,7 @@ ggplot(b, aes(x = gini_2017, y = running_sum, color = country)) +
   labs(
     title = "Cumulative Cases by Gini Coefficient in South America",
     subtitle = "Slight positive relationship",
-       y = "Cumulative Cases on 3/27",
+       y = "Cumulative Cases on 4/28",
        x = "Gini Coefficient in 2017",
     caption = "Data from the European Union's 
     European Centre for Disease Prevention 
@@ -285,15 +357,12 @@ ggplot(b, aes(x = gini_2017, y = running_sum)) +
   labs(
     title = "Cumulative Cases by Gini Coefficient in South America",
     subtitle = "Slight positive relationship",
-       y = "Cumulative Cases on 3/27",
+       y = "Cumulative Cases on 4/28",
        x = "Gini Coefficient in 2017",
     caption = "Data from the European Union's 
     European Centre for Disease Prevention 
     and Control and the World Bank",
     color = "Country") +
-  theme(legend.position="bottom") 
-
-summary(lm(running_sum ~ gini_2017 + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016, data = b)) 
+  theme(legend.position="bottom")
 ```
-
 
