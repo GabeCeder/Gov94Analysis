@@ -1,0 +1,152 @@
+---
+title: "regressions"
+author: "Gabe Cederberg"
+date: "5/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Loading the important packages for the exam.
+
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(fivethirtyeight)
+library(janitor)
+library(ggthemes)
+library(gt)
+library(reprex)
+library(magrittr)
+library(stringr)
+library(haven)
+library(infer)
+library(readxl)
+library(viridis) 
+library(lubridate)
+library(tidyr)
+library(broom)
+library(utils)
+library(gganimate)
+
+options(scipen = 999)
+```
+
+## COVID 19 Analysis
+
+```{r, echo = FALSE,  warning = FALSE}
+# Loading data
+
+import <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM") %>% 
+  filter(continentExp == "America") %>% 
+  select("date" = dateRep, 
+         "new_cases" = cases,
+         "new_deaths" = deaths,
+         "country" = countriesAndTerritories,
+         "code" = countryterritoryCode,
+         "pop_2018" = popData2018)
+
+import
+
+import$date <- as.Date(import$date, "%d/%m/%Y")
+
+import$country <- gsub("_", " ", import$country)
+```
+
+
+```{r, echo = FALSE,  warning = FALSE}
+wb_data <- read_excel("raw-data/wb_data.xlsx")
+```
+
+
+```{r, echo = FALSE,  warning = FALSE}
+test_data <- read_excel("raw-data/testing_data.xlsx") %>% 
+  clean_names() %>% 
+  select(country, 
+         tests_per_million = "tests_per_1m_pop")
+```
+
+```{r, echo = FALSE}
+
+shutdown_data <- read_csv("raw-data/lockdown_data.csv",
+                          col_types = cols(
+    Date = col_date(format = "%m/%d/%y"))) %>% 
+  clean_names() %>% 
+  select(country, date, type)
+
+shutdown_data$date <- as.Date(shutdown_data$date, "%d/%m/%y")
+
+```
+
+
+```{r, echo = FALSE,  warning = FALSE}
+
+merged <- import %>% 
+  left_join(wb_data, by = c("country", "code")) %>% 
+  left_join(test_data, by = "country") %>% 
+  left_join(shutdown_data, by = c("country", "date")) %>% 
+  select(date:pop_2018,
+         tests_per_million,
+         type,
+         gdp_2018 = "GDP (constant 2010 US$) 2018",
+         health_exp_gdp_2016 = "Current health expenditure (% of GDP) 2016",
+         out_pocket_exp_2016 = "Out-of-pocket expenditure (% of current health expenditure) 2016",
+         private_exp_pp_2016 = "Domestic private health expenditure per capita (current US$) 2016",
+         gini_2017 = "GINI index (World Bank estimate) 2017") %>% 
+  mutate(pop_millions = pop_2018 / 1000000,
+         gdp_billions = gdp_2018 / 1000000000) %>% 
+  select(date:code, 
+         type,
+         tests_per_million,
+         health_exp_gdp_2016:gdp_billions) %>% 
+  mutate(latin_america = ifelse(
+            country == "Brazil" |
+            country == "Mexico" |
+            country == "Colombia" |
+            country == "Argentina" |
+            country == "Venezuela" |
+            country == "Peru" |
+            country == "Chile" | 
+            country == "Ecuador" |
+            country == "Guatemala" |
+            country == "Cuba" |
+            country == "Bolivia" |
+            country == "Dominican_Republic" |
+            country == "Haiti" |
+            country == "Honduras" |
+            country == "Paraguay" |
+            country == "El_Salvador" |
+            country == "Nicaragua" |
+            country == "Costa_Rica" |
+            country == "Puerto_Rico" |
+            country == "Panama" |
+            country == "Uruguay", 1, 0),
+         south_america = ifelse(
+            country == "Brazil" |
+            country == "Colombia" |
+            country == "Argentina" |
+            country == "Venezuela" |
+            country == "Peru" |
+            country == "Chile" | 
+            country == "Ecuador" |
+            country == "Bolivia" |
+            country == "Paraguay" |
+            country == "Uruguay", 1, 0)) %>% 
+  filter(latin_america == 1) %>% 
+  group_by(country) %>% 
+  arrange(date) %>% 
+  mutate(running_cases = cumsum(new_cases),
+         running_deaths = cumsum(new_deaths)) %>% 
+  ungroup() %>% 
+  mutate(cases_pop = (new_cases / pop_millions),
+         deaths_pop = (new_deaths / pop_millions),
+         running_sum_pop = running_cases / pop_millions,
+         running_deaths_pop = running_deaths / pop_millions,
+         shutdown_date = ifelse(!is.na(type), paste(date), "")) %>% 
+  arrange(country)
+
+merged %>% 
+  group_by(country) %>% 
+  distinct(type)
+```

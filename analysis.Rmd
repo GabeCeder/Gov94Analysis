@@ -30,35 +30,33 @@ library(broom)
 library(utils)
 library(gganimate)
 
+options(scipen = 999)
 ```
 
 # {.tabset}
 
 ## COVID 19 Analysis
 
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
-
+```{r, echo = FALSE,  warning = FALSE}
 # Loading data
 
-import <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM") 
+import <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM") %>% 
+  filter(continentExp == "America") %>% 
+  select("date" = dateRep, 
+         "new_cases" = cases,
+         "new_deaths" = deaths,
+         "country" = countriesAndTerritories,
+         "code" = countryterritoryCode,
+         "pop_2018" = popData2018)
 
-import$dateRep <- 
-  as.Date(import$dateRep, "%d/%m/%Y")
+import$date <- as.Date(import$date, "%d/%m/%Y")
 
-clean_import <- import %>% 
-  select(date = "dateRep",
-         day:year,
-         new_cases = "cases",
-         new_deaths = "deaths",
-         country = "countriesAndTerritories",
-         geoid = "geoId",
-         code = "countryterritoryCode",
-         pop_2018 = "popData2018")
+import$country <- gsub("_", " ", import$country)
 
 other_data <- read_excel("raw-data/OtherData.xlsx")
 
-merged_data <- clean_import %>% 
-  left_join(other_data) %>% 
+merged <- import %>% 
+  left_join(other_data, by = c("country", "code")) %>% 
   select(date:pop_2018,
          gdp_2018 = "GDP (constant 2010 US$) 2018",
          health_exp_gdp_2016 = "Current health expenditure (% of GDP) 2016",
@@ -102,13 +100,13 @@ merged_data <- clean_import %>%
             country == "Bolivia" |
             country == "Paraguay" |
             country == "Uruguay", 1, 0)) %>% 
+  filter(latin_america == 1) %>% 
   group_by(country) %>% 
   arrange(date) %>% 
   mutate(running_sum = cumsum(new_cases)) %>% 
   ungroup() %>% 
   mutate(cases_pop = (new_cases / pop_millions),
          deaths_pop = (new_deaths / pop_millions),
-     #    deaths_cases = deaths_pop / cases_pop,
          running_sum_pop = running_sum / pop_millions) %>% 
   arrange(country)
 
