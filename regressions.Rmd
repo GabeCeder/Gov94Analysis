@@ -56,7 +56,8 @@ import$country <- gsub("_", " ", import$country)
 
 
 ```{r, echo = FALSE,  warning = FALSE}
-wb_data <- read_excel("raw-data/wb_data.xlsx")
+wb_data <- read_excel("raw-data/wb_data.xlsx") 
+
 ```
 
 
@@ -85,21 +86,22 @@ shutdown_data$date <- as.Date(shutdown_data$date, "%d/%m/%y")
 merged <- import %>% 
   left_join(wb_data, by = c("country", "code")) %>% 
   left_join(test_data, by = "country") %>% 
-  left_join(shutdown_data, by = c("country", "date")) %>% 
   select(date:pop_2018,
          tests_per_million,
-         type,
          gdp_2018 = "GDP (constant 2010 US$) 2018",
          health_exp_gdp_2016 = "Current health expenditure (% of GDP) 2016",
          out_pocket_exp_2016 = "Out-of-pocket expenditure (% of current health expenditure) 2016",
          private_exp_pp_2016 = "Domestic private health expenditure per capita (current US$) 2016",
-         gini_2017 = "GINI index (World Bank estimate) 2017") %>% 
+         gini_2017 = "GINI index (World Bank estimate) 2017", 
+         people_per_sq_km,
+         authoritarian) %>% 
   mutate(pop_millions = pop_2018 / 1000000,
          gdp_billions = gdp_2018 / 1000000000) %>% 
   select(date:code, 
-         type,
          tests_per_million,
-         health_exp_gdp_2016:gdp_billions) %>% 
+         health_exp_gdp_2016:gdp_billions,
+         people_per_sq_km,
+         authoritarian) %>% 
   mutate(latin_america = ifelse(
             country == "Brazil" |
             country == "Mexico" |
@@ -112,14 +114,14 @@ merged <- import %>%
             country == "Guatemala" |
             country == "Cuba" |
             country == "Bolivia" |
-            country == "Dominican_Republic" |
+            country == "Dominican Republic" |
             country == "Haiti" |
             country == "Honduras" |
             country == "Paraguay" |
-            country == "El_Salvador" |
+            country == "El Salvador" |
             country == "Nicaragua" |
             country == "Costa_Rica" |
-            country == "Puerto_Rico" |
+            country == "Puerto Rico" |
             country == "Panama" |
             country == "Uruguay", 1, 0),
          south_america = ifelse(
@@ -142,11 +144,119 @@ merged <- import %>%
   mutate(cases_pop = (new_cases / pop_millions),
          deaths_pop = (new_deaths / pop_millions),
          running_sum_pop = running_cases / pop_millions,
-         running_deaths_pop = running_deaths / pop_millions,
-         shutdown_date = ifelse(!is.na(type), paste(date), "")) %>% 
+         running_deaths_pop = running_deaths / pop_millions) %>% 
   arrange(country)
 
-merged %>% 
+reg <- merged %>% 
+    full_join(shutdown_data, by = "country") %>% 
+    mutate(shutdown = ifelse(is.na(type), 0, 1)) %>% 
   group_by(country) %>% 
-  distinct(type)
+  mutate(max_cases_pop = max(running_sum_pop)) %>% 
+  ungroup() %>% 
+  filter(running_sum_pop == max_cases_pop)
+
 ```
+
+```{r, echo = FALSE, warning = FALSE}
+model_1 <- lm(running_cases ~ tests_per_million + shutdown + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016 + people_per_sq_km + authoritarian, data = reg) 
+summary(model_1)
+```
+
+```{r, echo = FALSE, warning = FALSE}
+model_2 <- lm(scale(running_cases) ~ scale(tests_per_million) + shutdown + scale(pop_millions) + scale(gdp_billions) + scale(health_exp_gdp_2016) + scale(out_pocket_exp_2016) + scale(private_exp_pp_2016) + scale(people_per_sq_km) + authoritarian, data = reg) 
+summary(model_2)
+
+summary(reg)
+```
+
+```{r, echo = FALSE, message = FALSE}
+# Writing function
+
+reg_2 <- merged %>% 
+    full_join(shutdown_data, by = "country") %>% 
+    mutate(shutdown = ifelse(is.na(type), 0, 1)) %>% 
+  group_by(country) %>% 
+  mutate(max_cases_pop = max(running_sum_pop)) %>% 
+  ungroup()
+
+
+days_since <- function(x){
+rows <- reg_2 %>% 
+  filter(country == x) %>% 
+  select(country, date.x, running_cases) %>% 
+  filter(running_cases >= 1000) %>%
+  nrow()
+
+reg_2 %>% 
+  filter(country == x) %>% 
+  select(country, date.x, running_cases) %>% 
+  filter(running_cases >= 1000) %>%
+  mutate(days_since_1000 = 1:rows)
+}
+
+# rows <- reg_2 %>% 
+#   filter(country == "Brazil") %>% 
+#   select(country, date.x, running_cases) %>% 
+#   filter(running_cases >= 100) %>%
+#   nrow()
+# 
+# reg_2 %>% 
+#   filter(country == "Brazil") %>% 
+#   select(country, date.x, running_cases) %>% 
+#   filter(running_cases >= 100) %>%
+#   mutate(days_since_100 = 1:rows)
+
+
+countries_included <- c("Brazil", 
+       "Mexico", 
+       "Colombia", 
+        "Argentina", 
+   #     "Venezuela", 
+        "Peru", 
+        "Chile", 
+        "Ecuador", 
+  #    "Guatemala", 
+        "Cuba", 
+         "Bolivia", 
+        "Dominican Republic", 
+   #     "Haiti", 
+       "Honduras", 
+     #    "Paraguay", 
+   #      "El Salvador", 
+    #     "Nicaragua", 
+      #   "Costa Rica", 
+         "Puerto Rico", 
+   #    "Uruguay",
+           "Panama") 
+
+
+days_since <- map_df(countries_included, ~ days_since(.))
+
+combined <- days_since %>% 
+    full_join(shutdown_data, by = "country") %>% 
+    mutate(shutdown = ifelse(is.na(type), 0, 1)) %>% 
+  group_by(country) %>% 
+  mutate(max_cases = max(running_cases)) %>% 
+  ungroup() %>% 
+  filter(days_since_1000 == 1) %>% 
+  mutate(timely = ifelse(is.na(date) | date > date.x, 0, 1))
+
+combined
+
+model_3 <- lm(max_cases ~ timely, data = combined)
+summary(model_3)
+```
+
+
+```{r}
+
+xx <- combined %>% 
+  left_join(reg, by = "country")
+
+model_4 <- lm(max_cases ~ timely + tests_per_million + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016 + people_per_sq_km + authoritarian, data = xx)
+summary(model_4)
+
+
+
+```
+
