@@ -29,6 +29,7 @@ library(tidyr)
 library(broom)
 library(utils)
 library(gganimate)
+library(stargazer)
 
 options(scipen = 999)
 ```
@@ -94,6 +95,7 @@ merged <- import %>%
          private_exp_pp_2016 = "Domestic private health expenditure per capita (current US$) 2016",
          gini_2017 = "GINI index (World Bank estimate) 2017", 
          people_per_sq_km,
+         informal_sector, 
          authoritarian) %>% 
   mutate(pop_millions = pop_2018 / 1000000,
          gdp_billions = gdp_2018 / 1000000000) %>% 
@@ -101,6 +103,7 @@ merged <- import %>%
          tests_per_million,
          health_exp_gdp_2016:gdp_billions,
          people_per_sq_km,
+                  informal_sector, 
          authoritarian) %>% 
   mutate(latin_america = ifelse(
             country == "Brazil" |
@@ -155,18 +158,161 @@ reg <- merged %>%
   ungroup() %>% 
   filter(running_sum_pop == max_cases_pop)
 
+reg %>% 
+  filter(is.na(informal_sector))
 ```
 
 ```{r, echo = FALSE, warning = FALSE}
-model_1 <- lm(running_cases ~ tests_per_million + shutdown + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016 + people_per_sq_km + authoritarian, data = reg) 
+model_1 <- lm(running_cases ~ tests_per_million + shutdown + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016 + people_per_sq_km + informal_sector + authoritarian, data = reg) 
 summary(model_1)
+
+
+stargazer(model_1, 
+          title = "Regression Results", 
+          align = TRUE, 
+          dep.var.labels = c("Total Cases on May 5th"),
+          covariate.labels = c("Tests per million",
+                           "Shutdown before March 30th (1 or 0)",
+                           "Population (millions)",
+                           "GDP (billions USD)",
+                           "Health Expenditure as % of GDP",
+                           "Out of pocket exp. as % of health exp.",
+                           "Private health exp. per capita (USD)",
+                           "People per square km",
+                           "% of workforce in informal sector",
+                           "Authoritarian leader (1 or 0)",
+                           "Constant"),
+          type = 'html', 
+          out = "reg_output/reg1.html")
+
 ```
 
 ```{r, echo = FALSE, warning = FALSE}
-model_2 <- lm(scale(running_cases) ~ scale(tests_per_million) + shutdown + scale(pop_millions) + scale(gdp_billions) + scale(health_exp_gdp_2016) + scale(out_pocket_exp_2016) + scale(private_exp_pp_2016) + scale(people_per_sq_km) + authoritarian, data = reg) 
+model_2 <- lm(scale(running_cases) ~ scale(tests_per_million) + shutdown + scale(pop_millions) + scale(gdp_billions) + scale(health_exp_gdp_2016) + scale(out_pocket_exp_2016) + scale(private_exp_pp_2016) + scale(people_per_sq_km) + scale(informal_sector) + authoritarian, data = reg) 
 summary(model_2)
 
-summary(reg)
+stargazer(model_2, 
+          title = "Standardized Regression Results", 
+          align = TRUE, 
+          dep.var.labels = c("Total Cases on May 5th"),
+          covariate.labels = c("Tests per million",
+                           "Shutdown before March 30th (1 or 0)",
+                           "Population (millions)",
+                           "GDP (billions USD)",
+                           "Health Expenditure as % of GDP",
+                           "Out of pocket exp. as % of health exp.",
+                           "Private health exp. per capita (USD)",
+                           "People per square km",
+                           "% of workforce in informal sector",
+                           "Authoritarian leader (1 or 0)",
+                           "Constant"),
+          type = 'html', 
+          out = "reg_output/reg1a.html")
+
+aa <- reg$running_cases
+sd(aa)
+
+bb <- reg$pop_millions
+sd(bb)
+
+48.213
+
+cc <- reg$gdp_billions
+sd(cc)
+
+536.51
+
+#pop
+
+26396.97 * 3.80310
+  
+#gdp
+  
+26396.97 * -3.16483
+
+```
+
+```{r, echo = FALSE, warning = FALSE}
+model_8 <- lm(running_sum_pop ~ tests_per_million + shutdown + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016 + people_per_sq_km + informal_sector + authoritarian, data = reg) 
+summary(model_8)
+
+stargazer(model_8, 
+          title = "Regression Results", 
+          align = TRUE, 
+          dep.var.labels = c("Total Cases Per Capita on May 5th"),
+          covariate.labels = c("Tests per million",
+                           "Shutdown before March 30th (1 or 0)",
+                           "GDP (billions USD)",
+                           "Health Expenditure as % of GDP",
+                           "Out of pocket exp. as % of health exp.",
+                           "Private health exp. per capita (USD)",
+                           "People per square km",
+                           "% of workforce in informal sector",
+                           "Authoritarian leader (1 or 0)",
+                           "Constant"),
+          type = 'html', 
+          out = "reg_output/reg2.html")
+
+```
+
+```{r, echo = FALSE, warning = FALSE}
+model_9 <- lm(scale(running_sum_pop) ~ scale(tests_per_million) + shutdown + scale(gdp_billions) + scale(health_exp_gdp_2016) + scale(out_pocket_exp_2016) + scale(private_exp_pp_2016) + scale(people_per_sq_km) + scale(informal_sector) + authoritarian, data = reg) 
+summary(model_9)
+
+stargazer(model_9, 
+          title = "Regression Results", 
+          align = TRUE, 
+          dep.var.labels = c("Standardized Total Cases Per Capita on May 5th"),
+          covariate.labels = c("Tests per million",
+                           "Shutdown before March 30th (1 or 0)",
+                           "GDP (billions USD)",
+                           "Health Expenditure as % of GDP",
+                           "Out of pocket exp. as % of health exp.",
+                           "Private health exp. per capita (USD)",
+                           "People per square km",
+                           "% of workforce in informal sector",
+                           "Authoritarian leader (1 or 0)",
+                           "Constant"),
+          type = 'html', 
+          out = "reg_output/reg2a.html")
+
+aa <- reg$running_sum_pop
+sd(aa)
+
+ab <- reg %>% 
+  filter(!is.na(informal_sector))
+bb <- ab$informal_sector
+sd(bb)
+
+48.213
+
+cc <- reg$gdp_billions
+sd(cc)
+
+536.51
+
+#pop
+
+670.5533 * 2.427
+  
+#gdp
+  
+670.5533 * -3.16483
+
+ggplot(reg, aes(informal_sector, running_sum_pop, color = country)) +
+  geom_point() +
+  geom_abline() +
+  theme_classic() +
+#  scale_color_viridis_d(option = "plasma") +
+  labs(
+    title = "Size of Informal Sector and Cases per Capita",
+       y = "Cases per capita",
+       x = "% of workforce in informal sector",
+    caption = "Cases as of May 5th, 2020",
+    color = "") +
+  theme(legend.position = "bottom")
+reg
+
 ```
 
 ```{r, echo = FALSE, message = FALSE}
@@ -189,7 +335,7 @@ rows <- reg_2 %>%
 
 reg_2 %>% 
   filter(country == x) %>% 
-  select(country, date.x, running_cases) %>% 
+  select(country, date.x, running_cases, running_sum_pop) %>% 
   filter(running_cases >= 1000) %>%
   mutate(days_since_1000 = 1:rows)
 }
@@ -241,10 +387,37 @@ combined <- days_since %>%
   filter(days_since_1000 == 1) %>% 
   mutate(timely = ifelse(is.na(date) | date > date.x, 0, 1))
 
-combined
+for_graph <- days_since %>% 
+    full_join(shutdown_data, by = "country") %>% 
+    mutate(shutdown = ifelse(is.na(type), 0, 1)) %>% 
+  group_by(country) %>% 
+  mutate(max_cases = max(running_cases)) %>% 
+  ungroup()
+
+for_graph %>% 
+  ggplot(aes(days_since_1000, running_cases, color = country)) + 
+  geom_line() +
+  theme_classic() +
+#  scale_color_viridis_d(option = "plasma") +
+  labs(
+    title = "Total Case Growth",
+       y = "Total Cases",
+       x = "Days since 1,000 confirmed cases",
+    color = "") +
+  theme(legend.position = "none")
 
 model_3 <- lm(max_cases ~ timely, data = combined)
 summary(model_3)
+
+
+stargazer(model_3, 
+          title = "Regression Results", 
+          align = TRUE, 
+          dep.var.labels = c("Total Cases on May 5th"),
+          covariate.labels = c("Shutdown before 1,000 cases (1 or 0)",
+                           "Constant"),
+          type = 'html', 
+          out = "reg_output/reg3.html")
 ```
 
 
@@ -253,7 +426,7 @@ summary(model_3)
 xx <- combined %>% 
   left_join(reg, by = "country")
 
-model_4 <- lm(max_cases ~ timely + tests_per_million + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016 + people_per_sq_km + authoritarian, data = xx)
+model_4 <- lm(running_sum_pop ~ timely + tests_per_million + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016 + people_per_sq_km + informal_sector + authoritarian, data = xx)
 summary(model_4)
 
 
