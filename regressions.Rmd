@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-# Loading the important packages for the exam.
+# Loading the important packages for the analysis. 
 
 library(tidyverse)
 library(dplyr)
@@ -424,12 +424,80 @@ stargazer(model_3,
 ```{r}
 
 xx <- combined %>% 
-  left_join(reg, by = "country")
+  left_join(reg, by = "country") %>% 
+  mutate(running_cases_pop = max_cases / pop_millions)
 
-model_4 <- lm(running_sum_pop ~ timely + tests_per_million + pop_millions + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016 + people_per_sq_km + informal_sector + authoritarian, data = xx)
+xx
+
+model_4 <- lm(running_cases_pop ~ timely + tests_per_million + gdp_billions + health_exp_gdp_2016 + out_pocket_exp_2016 + private_exp_pp_2016 + people_per_sq_km + informal_sector, data = xx)
 summary(model_4)
 
+stargazer(model_4, 
+          title = "Regression Results", 
+          align = TRUE, 
+          dep.var.labels = c("Total Cases Per Capita on May 5th"),
+          covariate.labels = c("Shutdown before 1,000 cases (1 or 0)",
+                               "Tests per million",
+                               "GDP (billions USD)",
+                           "Health Expenditure as % of GDP",
+                           "Out of pocket exp. as % of health exp.",
+                           "Private health exp. per capita (USD)",
+                           "People per square km",
+                           "% of workforce in informal sector",
+                           "Constant"),
+          type = 'html', 
+          out = "reg_output/reg4.html")
 
+```
 
+```{r, message = FALSE}
+model_5 <- lm(scale(running_cases_pop) ~ timely + scale(tests_per_million) + scale(gdp_billions) + scale(health_exp_gdp_2016) + scale(out_pocket_exp_2016) + scale(private_exp_pp_2016) + scale(people_per_sq_km) + scale(informal_sector), data = xx)
+summary(model_5)
+
+stargazer(model_5, 
+          title = "Standardized Regression Results", 
+          align = TRUE, 
+          dep.var.labels = c("Standardized Total Cases Per Capita on May 5th"),
+          covariate.labels = c("Shutdown before 1,000 cases (1 or 0)",
+                               "Tests per million",
+                               "GDP (billions USD)",
+                           "Health Expenditure as % of GDP",
+                           "Out of pocket exp. as % of health exp.",
+                           "Private health exp. per capita (USD)",
+                           "People per square km",
+                           "% of workforce in informal sector",
+                           "Constant"),
+          type = 'html', 
+          out = "reg_output/reg5.html")
+xa <- xx %>% 
+  filter(country != "Puerto Rico")
+
+xa %>% 
+  ggplot(aes(tests_per_million, running_cases_pop)) + 
+  geom_point() +
+  geom_smooth() +
+  theme_classic() +
+#  scale_color_viridis_d(option = "plasma") +
+  labs(
+    title = "COVID-19 Testing and COVID-19 Cases",
+       y = "Total cases per million",
+       x = "Tests per million",
+    color = "") +
+  theme(legend.position = "none")
+```
+
+```{r, message = FALSE}
+xa %>% 
+  ggplot(aes(gdp_billions, running_cases_pop)) + 
+  geom_point() +
+  geom_smooth() +
+  theme_classic() +
+#  scale_color_viridis_d(option = "plasma") +
+  labs(
+    title = "GDP and COVID-19 Cases",
+       y = "Total cases per million",
+       x = "GDP (Billions of US Dollars)",
+    color = "") +
+  theme(legend.position = "none")
 ```
 
